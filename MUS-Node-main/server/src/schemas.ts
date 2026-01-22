@@ -75,7 +75,7 @@ export const getSchemas = () => {
                 'TaskCompletionTime', 'ClickDepth', 'NavigationClarity', 'CognitiveLoad', 'ErrorRate'
             ]),
             AccessibilityCompliance: createScoredSectionSchema([
-                'ContrastAndReadability', 'KeyboardNavigation', 'ScreenReaderCompatibility', 'TouchTargetSize'
+                'ScreenReaderCompatibility', 'TouchTargetSize'
             ]),
             OverallRecommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
@@ -94,7 +94,8 @@ export const getSchemas = () => {
                 'GamificationIncentives', 'PersonalizationAdaptability', 'FrictionPoints', 'UserFeedbackIteration'
             ]),
             ConversionOptimization: createScoredSectionSchema([
-                'CTAClarityPlacement', 'CheckoutPaymentFlow', 'LeadGenerationForms', 'MicrocopyMessaging'
+                'CTAClarityPlacement', 'CheckoutPaymentFlow', 'LeadGenerationForms', 'MicrocopyMessaging',
+                'PageSpeedAPI_ActualLoadTime_CoreWebVitals'
             ]),
             OverallRecommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
@@ -113,7 +114,7 @@ export const getSchemas = () => {
                 'VisualHierarchy', 'ImageryIllustrations', 'AnimationMotionUI', 'WhitespaceMinimalism'
             ]),
             ResponsivenessAndAdaptability: createScoredSectionSchema([
-                'MobileOptimization', 'DarkModeTheming', 'ActualLoadTimeAndCoreWebVitals'
+                'MobileOptimization', 'DarkModeTheming'
             ]),
             OverallRecommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
         },

@@ -55,7 +55,7 @@ export function DetailedAuditView({ auditData, auditType, isPdf = false, forcePa
     const sectionMargin = isPdf ? "mb-2" : "mb-2"; // Use user's preferred margin
 
     // Split parameters for the first section to allow breaking
-    const firstParams = firstSection?.data?.Parameters || [];
+    const firstParams = (firstSection?.data?.Parameters || []).filter((p: ScoredParameter) => p.Score > 0);
     const [param1, ...restParams] = firstParams;
     const hasRestParams = restParams.length > 0;
 
@@ -89,16 +89,19 @@ export function DetailedAuditView({ auditData, auditType, isPdf = false, forcePa
             )}
 
             {/* Remaining Detailed Sections */}
-            {remainingSections.map((section, index) => (
-                section.data && section.data.Parameters && (
+            {remainingSections.map((section, index) => {
+                const filteredParams = (section.data?.Parameters || []).filter((p: ScoredParameter) => p.Score > 0);
+                if (filteredParams.length === 0) return null;
+
+                return (
                     <div key={section.title} className={sectionMargin}>
                         <AuditSubSectionHeader title={section.title} score={section.data?.SectionScore * 10 || 0} forceBreak={false} isPdf={isPdf} />
                         <div className={`flex flex-col self-stretch ${cardGap}`}>
-                            {section.data.Parameters.map((p: ScoredParameter, i: number) => <ScoredParameterCard key={i} parameter={p} isPdf={isPdf} />)}
+                            {filteredParams.map((p: ScoredParameter, i: number) => <ScoredParameterCard key={i} parameter={p} isPdf={isPdf} />)}
                         </div>
                     </div>
-                )
-            ))}
+                );
+            })}
         </div>
     );
 }

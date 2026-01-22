@@ -128,7 +128,7 @@ export const getUXSystemInstruction = (mobileCaptureSucceeded: boolean, isMultiP
 };
 
 export const getProductSystemInstruction = (isMultiPage: boolean) => {
-    let specificInstructions = `You are a world-class **Product Auditor**. Your specific task is to evaluate the website's market fit, user engagement, and conversion effectiveness.`;
+    let specificInstructions = `You are a world-class **Product Auditor**. Your specific task is to evaluate the website's market fit, user engagement, and conversion effectiveness.\n- Your analysis for 'PageSpeedAPI_ActualLoadTime_CoreWebVitals' MUST directly reference the provided performance metrics. If data could not be retrieved, you MUST assign a \`Score\` of \`0\` and the \`Analysis\` must state that the check failed (e.g., 'Not applicable. The automated performance check failed to retrieve data.').`;
 
     if (isMultiPage) {
         specificInstructions += `\n- **Multi-Page Context**: This is a multi-page audit. Identify patterns and inconsistencies across pages.`;
@@ -138,7 +138,7 @@ export const getProductSystemInstruction = (isMultiPage: boolean) => {
 };
 
 export const getVisualSystemInstruction = (mobileCaptureSucceeded: boolean, isMultiPage: boolean) => {
-    let specificInstructions = `You are a world-class **Visual Designer**. Your specific task is to evaluate the website's aesthetics, branding, and responsiveness.\n- Your analysis for 'ActualLoadTimeAndCoreWebVitals' MUST directly reference the provided performance metrics. If data could not be retrieved, you MUST assign a \`Score\` of \`0\` and the \`Analysis\` must state that the check failed (e.g., 'Not applicable. The automated performance check failed to retrieve data.').`;
+    let specificInstructions = `You are a world-class **Visual Designer**. Your specific task is to evaluate the website's aesthetics, branding, and responsiveness.`;
 
     if (isMultiPage) {
         specificInstructions += `\n- **Multi-Page Context**: This is a multi-page audit. Identify patterns and inconsistencies across pages.`;
@@ -240,16 +240,18 @@ export const getCompetitorSystemInstruction = () => `
        - 'FlexibilityAndEfficiencyOfUse', 'AestheticAndMinimalistDesign'
        - 'HelpUsersRecoverFromErrors', 'HelpAndDocumentation'
        - 'TaskCompletionTime', 'ClickDepth', 'NavigationClarity', 'CognitiveLoad', 'ErrorRate'
+       - 'ScreenReaderCompatibility', 'TouchTargetSize'
 
     3. **ProductComparison**:
        - 'ClearValueProposition', 'OnboardingEffectiveness', 'FeatureDiscoverability', 'MonetizationModelClarity'
        - 'GamificationIncentives', 'PersonalizationAdaptability', 'FrictionPoints', 'UserFeedbackIteration'
        - 'CTAClarityPlacement', 'CheckoutPaymentFlow', 'LeadGenerationForms', 'MicrocopyMessaging'
+       - 'PageSpeedAPI_ActualLoadTime_CoreWebVitals'
 
     4. **VisualComparison**:
        - 'ColorPaletteContrast', 'TypographyReadability', 'IconographySymbolism', 'SpacingAlignment'
        - 'VisualHierarchy', 'ImageryIllustrations', 'AnimationMotionUI', 'WhitespaceMinimalism'
-       - 'MobileOptimization', 'DarkModeTheming', 'ActualLoadTimeAndCoreWebVitals'
+       - 'MobileOptimization', 'DarkModeTheming'
 
     *For each parameter, provide a 'PrimaryScore', 'CompetitorScore', a brief 'Analysis' (1 sentence), and declare a 'Winner'.*
 
