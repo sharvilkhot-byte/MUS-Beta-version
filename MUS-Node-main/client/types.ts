@@ -49,6 +49,7 @@ export interface AuditInput {
   fileData?: string; // Base64 (Service)
   filesData?: string[]; // Array of Base64 strings (Service)
   id: string; // Unique ID for React lists
+  role?: 'primary' | 'competitor';
 }
 
 export type ImpactLevel = 'High' | 'Medium' | 'Low';

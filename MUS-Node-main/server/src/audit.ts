@@ -93,29 +93,28 @@ async function retryWithBackoff(operation: any, retries = 15, initialDelay = 200
     }
 }
 
-const callApi = async (ai: any, systemInstruction: string, contents: string, schema: any, imageBase64: string | null = null, mimeType = 'image/png', secondaryImageBase64: string | null = null) => {
+const callApi = async (ai: any, systemInstruction: string, contents: string, schema: any, images: string[] = [], mimeType = 'image/png') => {
     const parts: any[] = [];
-    if (imageBase64) {
-        parts.push({
-            inlineData: {
-                mimeType,
-                data: imageBase64
+
+    // Add all images to parts
+    if (images && images.length > 0) {
+        for (const img of images) {
+            if (img) {
+                parts.push({
+                    inlineData: {
+                        mimeType,
+                        data: img
+                    }
+                });
             }
-        });
+        }
     }
-    if (secondaryImageBase64) {
-        parts.push({
-            inlineData: {
-                mimeType,
-                data: secondaryImageBase64
-            }
-        });
-    }
+
     parts.push({
         text: contents
     });
 
-    const requestContents = (imageBase64 || secondaryImageBase64) ? { parts } : contents;
+    const requestContents = (images && images.length > 0) ? { parts } : contents;
 
     const apiCall = () => ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -198,6 +197,58 @@ const callApi = async (ai: any, systemInstruction: string, contents: string, sch
         aiSemaphore.release();
     }
 };
+
+const handleSingleAnalysisStream = async (res: Response, expertKey: string, analysisFn: any) => {
+    const write = (chunk: any) => {
+        res.write(JSON.stringify(chunk) + '\n');
+    };
+
+    try {
+        write({ type: 'status', message: `Running ${expertKey.replace(' expert', '')} analysis...` });
+        const data = await analysisFn();
+        if (!data) {
+            throw new Error("The AI model returned an empty or invalid response for this audit section.");
+        }
+        write({ type: 'data', payload: { key: expertKey, data } });
+        write({ type: 'status', message: `✓ ${expertKey.replace(' expert', '')} analysis complete.` });
+    } catch (error: any) {
+        console.error(`Analysis failed for ${expertKey}:`, error);
+        const errorMessage = error.stack ? `${error.message}\n${error.stack}` : error.message;
+        write({ type: 'error', message: `Error in ${expertKey}: ${errorMessage}` });
+    }
+};
+
+// --- MAIN HANDLER ---
+
+export const handleAuditRequest = async (req: Request, res: Response) => {
+    // ... (imports and setups assumed unchanged, only changing switch)
+    // Actually, I need to keep the context. Since I am replacing the `callApi` definition which is top-level,
+    // I need to be careful not to delete `handleAuditRequest`.
+    // Wait, `handleAuditRequest` starts at line 234 in the original file.
+    // My replacement content ends with `handleSingleAnalysisStream` and doesn't include `handleAuditRequest`.
+    // But I am replacing lines 96 to 668? That covers `callApi`, `handleSingleAnalysisStream` AND `handleAuditRequest` body!
+    // I MUST include `handleAuditRequest` in the replacement content or target strictly `callApi`.
+    // But `callApi` needs to be updated, and `handleAuditRequest` (specifically the switch cases) need to call `callApi` differently.
+    // So I will include `handleAuditRequest` logic in the replacement, updating the calls.
+
+    // RE-WRITING LOGIC:
+    // I will replace `callApi` specifically first (lines 96-200).
+    // Then replace the `switch` block in `handleAuditRequest`.
+    // This is safer.
+
+    // Changing plan: split into two tool calls.
+    // Tool Call 1: Replace `callApi`.
+    // Tool Call 2: Replace switch block usage.
+
+    // BUT I cannot do two replace calls in parallel on the same file if they overlap lines or rely on line numbers.
+    // Since I'm sequentially executing, it's fine.
+
+    // Let's stick to replacing `callApi` first.
+    return; // This is just thought process.
+};
+// I need to return the replacement content for the tool call.
+// I will output the tool call now.
+
 
 const handleSingleAnalysisStream = async (res: Response, expertKey: string, analysisFn: any) => {
     const write = (chunk: any) => {
@@ -596,12 +647,13 @@ export const handleAuditRequest = async (req: Request, res: Response) => {
                 const analysisFn = async () => {
                     if (mode === 'analyze-strategy') {
                         const { liveText, screenshotBase64, screenshotMimeType, mobileScreenshotBase64 } = req.body;
-                        return callApi(ai, getStrategySystemInstruction(), liveText, expertConfig.schema, screenshotBase64, screenshotMimeType, mobileScreenshotBase64);
+                        const images = [screenshotBase64, mobileScreenshotBase64].filter(Boolean);
+                        return callApi(ai, getStrategySystemInstruction(), liveText, expertConfig.schema, images, screenshotMimeType);
                     } else {
                         const { url, screenshotBase64, mobileScreenshotBase64, liveText, performanceData, screenshotMimeType, performanceAnalysisError, animationData, accessibilityData, axeViolations } = req.body;
 
                         const mobileCaptureSucceeded = !!mobileScreenshotBase64;
-                        const isMultiPage = liveText.includes("--- START CONTENT FROM");
+                        const isMultiPage = liveText.includes("--- START CONTENT FROM"); // Crude check, but we can trust liveText structure
 
                         let systemInstruction = "";
                         let contextPrompt = getWebsiteContextPrompt(url, performanceData, performanceAnalysisError, animationData, accessibilityData, isMultiPage);
@@ -620,8 +672,9 @@ export const handleAuditRequest = async (req: Request, res: Response) => {
                         }
 
                         const fullContent = `${contextPrompt}\n### Live Website Text Content ###\n${liveText}`;
+                        const images = [screenshotBase64, mobileScreenshotBase64].filter(Boolean);
 
-                        return callApi(ai, systemInstruction, fullContent, expertConfig.schema, screenshotBase64, screenshotMimeType, mobileScreenshotBase64);
+                        return callApi(ai, systemInstruction, fullContent, expertConfig.schema, images, screenshotMimeType);
                     }
                 };
 
@@ -634,8 +687,8 @@ export const handleAuditRequest = async (req: Request, res: Response) => {
                 const schemas = getSchemas();
                 const analysisFn = async () => {
                     const {
-                        primaryUrl, primaryScreenshotBase64, primaryLiveText,
-                        competitorUrl, competitorScreenshotBase64, competitorLiveText,
+                        primaryUrl, primaryScreenshotsBase64, primaryLiveText,
+                        competitorUrl, competitorScreenshotsBase64, competitorLiveText,
                         screenshotMimeType
                     } = req.body;
 
@@ -652,10 +705,16 @@ export const handleAuditRequest = async (req: Request, res: Response) => {
 
                     console.log("[COMPETITOR] Starting parallel analysis (Strategic + Tactical)...");
 
+                    // Combine images: Primary first, then Competitor.
+                    // Gemeni will see them in order.
+                    // Pass all images to AI.
+                    const allImages = [...(primaryScreenshotsBase64 || []), ...(competitorScreenshotsBase64 || [])];
+                    const limitedImages = allImages.slice(0, 10); // Limit total images to 10 effectively to avoid payload limits/confusion
+
                     // Run both analyses in parallel
                     const [strategicData, tacticalData] = await Promise.all([
-                        callApi(ai, systemInstruction + "\n\nFOCUS: Focus ONLY on Strategy, Accessibility, Strengths, Opportunities, and Executive Summary.", fullContent, schemas.competitorAuditSchemaStrategic, primaryScreenshotBase64, screenshotMimeType, competitorScreenshotBase64),
-                        callApi(ai, systemInstruction + "\n\nFOCUS: Focus ONLY on UX, Product, and Visual comparisons.", fullContent, schemas.competitorAuditSchemaTactical, primaryScreenshotBase64, screenshotMimeType, competitorScreenshotBase64)
+                        callApi(ai, systemInstruction + "\n\nFOCUS: Focus ONLY on Strategy, Accessibility, Strengths, Opportunities, and Executive Summary.", fullContent, schemas.competitorAuditSchemaStrategic, limitedImages, screenshotMimeType),
+                        callApi(ai, systemInstruction + "\n\nFOCUS: Focus ONLY on UX, Product, and Visual comparisons.", fullContent, schemas.competitorAuditSchemaTactical, limitedImages, screenshotMimeType)
                     ]);
 
                     console.log("[COMPETITOR] Parallel analysis complete. Merging results...");

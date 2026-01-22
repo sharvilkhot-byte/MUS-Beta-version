@@ -131,80 +131,103 @@ export const analyzeWebsiteStream = async (
     onStatus(auditMode === 'competitor' ? 'Scraping Primary and Competitor sites...' : 'Processing inputs...');
 
     // COMPETITOR MODE SPECIFIC DATA
-    let primaryData: any = null;
-    let competitorData: any = null;
+    let primaryDataResult: any = null;
+    let competitorDataResult: any = null;
 
-    if (auditMode === 'competitor') {
-      if (inputs.length < 2) throw new Error("Competitor analysis requires 2 URLs.");
+    // Helper: Process a list of inputs (reusing logic from standard mode essentially)
+    const processInputList = async (inputList: AuditInput[], labelPrefix: string) => {
+      const screenshots: Screenshot[] = [];
+      let liveText = "";
 
-      const primaryInput = inputs[0];
-      const competitorInput = inputs[1];
-
-      // Helper: Acquire Logic for One Input (Hybrid: URL Scrape or File Base64)
-      const acquireData = async (input: AuditInput, label: string) => {
+      for (let i = 0; i < inputList.length; i++) {
+        const input = inputList[i];
+        const label = `${labelPrefix} ${i + 1}`;
         onStatus(`Processing ${label}...`);
 
-        if (input.type === 'upload' && (input.file || input.files?.length)) {
-          // HANDLE FILE
-          const file = input.file || input.files?.[0];
-          if (!file) throw new Error(`No file provided for ${label}`);
+        try {
+          if (input.type === 'upload' && (input.file || (input.filesData && input.filesData.length > 0) || input.files?.length)) {
+            // HANDLE FILE (Legacy or Multi)
+            // Note: App.tsx pre-converts keys to filesData/fileData. 
+            const dataArray = input.filesData || (input.fileData ? [input.fileData] : []);
+            // Check if we need to convert fresh files (should be done in App.tsx but safety check)
+            if (dataArray.length === 0 && (input.files || input.file)) {
+              const rawFiles = input.files || [input.file!];
+              for (const f of rawFiles) {
+                if (f) dataArray.push(await fileToBase64(f));
+              }
+            }
 
-          const base64 = await fileToBase64(file);
-          return {
-            screenshot: {
-              path: 'upload',
-              data: base64,
-              isMobile: false
-            } as Screenshot,
-            liveText: ''
-          };
-        } else if (input.type === 'url' && input.url) {
-          // HANDLE URL
-          onStatus(`Scraping ${label}: ${input.url}...`);
-          const response = await fetch(functionUrl, {
-            method: 'POST',
-            headers: commonHeaders,
-            body: JSON.stringify({ url: input.url, isMobile: false, isFirstPage: true, mode: 'scrape-single-page' }),
-          });
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Failed to scrape ${label}: ${response.status} ${errorText}`);
+            for (const base64 of dataArray) {
+              screenshots.push({
+                path: 'upload',
+                data: base64,
+                isMobile: false
+              });
+            }
+          } else if (input.type === 'url' && input.url) {
+            // HANDLE URL
+            onStatus(`Scraping ${label}: ${input.url}...`);
+            // Desktop
+            const response = await fetch(functionUrl, {
+              method: 'POST',
+              headers: commonHeaders,
+              body: JSON.stringify({ url: input.url, isMobile: false, isFirstPage: screenshots.length === 0, mode: 'scrape-single-page' }),
+            });
+            if (!response.ok) throw new Error(`Failed to scrape ${input.url}`);
+            const result = await response.json();
+            screenshots.push(result.screenshot);
+            if (!result.screenshot.isMobile) {
+              liveText += `\n\n--- CONTENT FROM ${input.url} ---\n${result.liveText || '(No text found)'}\n\n`;
+            }
+
+            // Mobile (Optional: Only if requested or for first URL? Standard mode does both for first URL. 
+            // For competitor mode, let's skip mobile scrape to save time/tokens unless we really want it. 
+            // Let's stick to desktop for multi-input competitor to reduce overload risk as requested).
           }
-          return await response.json(); // Returns { screenshot, liveText, ... }
+        } catch (e) {
+          console.error(`Failed to process ${label}`, e);
+          onStatus(`⚠️ Failed to process ${label}. Skipping.`);
         }
-        throw new Error(`Invalid input for ${label}`);
-      };
+      }
+      return { screenshots, liveText };
+    };
 
-      // ACQUIRE SEQUENTIALLY TO AVOID 429 ERRORS
-      try {
-        const primaryResult = await acquireData(primaryInput, "Primary Site");
-        primaryData = primaryResult;
+    if (auditMode === 'competitor') {
+      const primaryInputs = inputs.filter(i => i.role === 'primary');
+      const competitorInputs = inputs.filter(i => i.role === 'competitor');
 
-        // Short pause to be safe (increased to 3s for stability)
-        await new Promise(r => setTimeout(r, 3000));
-
-        const competitorResult = await acquireData(competitorInput, "Competitor Site");
-        competitorData = competitorResult;
-
-        allScreenshots.push(primaryData.screenshot);
-        allScreenshots.push(competitorData.screenshot);
-
-      } catch (e) {
-        throw new Error(`Data acquisition failed: ${e instanceof Error ? e.message : String(e)}`);
+      if (primaryInputs.length === 0 || competitorInputs.length === 0) {
+        // Fallback for legacy calls without roles? Assume first is primary, rest competitor?
+        // No, App.tsx now guarantees roles.
+        throw new Error("Competitor analysis requires at least one Primary and one Competitor input.");
       }
 
+      // ACQUIRE PRIMARY
+      primaryDataResult = await processInputList(primaryInputs, "Primary Site");
+
+      // ACQUIRE COMPETITOR
+      competitorDataResult = await processInputList(competitorInputs, "Competitor Site");
+
+      if (primaryDataResult.screenshots.length === 0 || competitorDataResult.screenshots.length === 0) {
+        throw new Error("Failed to acquire valid data for comparison.");
+      }
+
+      allScreenshots.push(...primaryDataResult.screenshots);
+      allScreenshots.push(...competitorDataResult.screenshots);
+
       onScrapeComplete(allScreenshots, 'image/png');
-      onStatus('✓ input data acquired. Beginning Comparative Analysis...');
+      onStatus('✓ Input data acquired. Beginning Comparative Analysis...');
 
       // --- RUN COMPETITOR ANALYSIS ---
+      // Pass arrays to backend
       const analysisBody = {
         mode: 'analyze-competitor',
-        primaryUrl: primaryInput.url,
-        primaryScreenshotBase64: primaryData.screenshot.data,
-        primaryLiveText: primaryData.liveText || '',
-        competitorUrl: competitorInput.url,
-        competitorScreenshotBase64: competitorData.screenshot.data,
-        competitorLiveText: competitorData.liveText || '',
+        primaryUrl: primaryInputs[0].url || 'Primary Inputs',
+        primaryScreenshotsBase64: primaryDataResult.screenshots.map((s: Screenshot) => s.data), // Array
+        primaryLiveText: primaryDataResult.liveText,
+        competitorUrl: competitorInputs[0].url || 'Competitor Inputs',
+        competitorScreenshotsBase64: competitorDataResult.screenshots.map((s: Screenshot) => s.data), // Array
+        competitorLiveText: competitorDataResult.liveText,
         screenshotMimeType: 'image/png'
       };
 
@@ -212,10 +235,8 @@ export const analyzeWebsiteStream = async (
 
       onStatus('✓ Analysis complete. Finalizing...');
       onComplete({
-        auditId: 'temp-competitor-id', // Or handle saving differently
+        auditId: 'temp-competitor-id',
         report: finalReport,
-        // We might not save to Supabase for competitor analysis yet or handle logic differently
-        // For now, let's skip the heavy 'finalize' call that upserts standard audits unless requested 
       });
 
     } else {
