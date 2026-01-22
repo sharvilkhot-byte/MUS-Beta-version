@@ -1,0 +1,10 @@
+{
+  "name": "new white label MUS",
+  "description": "An automated system that takes a URL and produces a structured JSON report evaluating the website on a wide range of objective and AI-interpreted metrics, from performance and accessibility to usability and visual appeal.",
+  "requestFramePermissions": [],
+  "allowedOrigins": [
+    "https://browserless.io",
+    "https://production-sfo.browserless.io",
+    "https://sobtfbplbpvfqeubjxex.supabase.co"
+  ]
+}
