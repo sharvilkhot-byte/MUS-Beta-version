@@ -218,67 +218,7 @@ const handleSingleAnalysisStream = async (res: Response, expertKey: string, anal
     }
 };
 
-// --- MAIN HANDLER ---
 
-export const handleAuditRequest = async (req: Request, res: Response) => {
-    // ... (imports and setups assumed unchanged, only changing switch)
-    // Actually, I need to keep the context. Since I am replacing the `callApi` definition which is top-level,
-    // I need to be careful not to delete `handleAuditRequest`.
-    // Wait, `handleAuditRequest` starts at line 234 in the original file.
-    // My replacement content ends with `handleSingleAnalysisStream` and doesn't include `handleAuditRequest`.
-    // But I am replacing lines 96 to 668? That covers `callApi`, `handleSingleAnalysisStream` AND `handleAuditRequest` body!
-    // I MUST include `handleAuditRequest` in the replacement content or target strictly `callApi`.
-    // But `callApi` needs to be updated, and `handleAuditRequest` (specifically the switch cases) need to call `callApi` differently.
-    // So I will include `handleAuditRequest` logic in the replacement, updating the calls.
-
-    // RE-WRITING LOGIC:
-    // I will replace `callApi` specifically first (lines 96-200).
-    // Then replace the `switch` block in `handleAuditRequest`.
-    // This is safer.
-
-    // Changing plan: split into two tool calls.
-    // Tool Call 1: Replace `callApi`.
-    // Tool Call 2: Replace switch block usage.
-
-    // BUT I cannot do two replace calls in parallel on the same file if they overlap lines or rely on line numbers.
-    // Since I'm sequentially executing, it's fine.
-
-    // Let's stick to replacing `callApi` first.
-    return; // This is just thought process.
-};
-// I need to return the replacement content for the tool call.
-// I will output the tool call now.
-
-
-const handleSingleAnalysisStream = async (res: Response, expertKey: string, analysisFn: any) => {
-    const write = (chunk: any) => {
-        res.write(JSON.stringify(chunk) + '\n');
-    };
-
-    try {
-        write({ type: 'status', message: `Running ${expertKey.replace(' expert', '')} analysis...` });
-        const data = await analysisFn();
-        if (!data) {
-            throw new Error("The AI model returned an empty or invalid response for this audit section.");
-        }
-        if (expertKey === 'Visual Audit expert') {
-            console.log("---------- VISUAL AUDIT RESPONSE ----------");
-            console.log(JSON.stringify(data, null, 2));
-            console.log("-------------------------------------------");
-        }
-        if (expertKey === 'Strategy Audit expert') {
-            console.log("---------- STRATEGY AUDIT RESPONSE ----------");
-            console.log(JSON.stringify(data, null, 2));
-            console.log("-------------------------------------------");
-        }
-        write({ type: 'data', payload: { key: expertKey, data } });
-        write({ type: 'status', message: `✓ ${expertKey.replace(' expert', '')} analysis complete.` });
-    } catch (error: any) {
-        console.error(`Analysis failed for ${expertKey}:`, error);
-        const errorMessage = error.stack ? `${error.message}\n${error.stack}` : error.message;
-        write({ type: 'error', message: `Error in ${expertKey}: ${errorMessage}` });
-    }
-};
 
 // --- MAIN HANDLER ---
 

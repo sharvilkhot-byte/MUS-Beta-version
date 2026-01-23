@@ -22,7 +22,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
         }
 
         setIsLoading(true);
-        const { error } = await sendOtp(email);
+        const { error } = await sendOtp(email.trim());
         setIsLoading(false);
 
         if (error) {

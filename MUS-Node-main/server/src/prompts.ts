@@ -89,18 +89,27 @@ export const getStrategySystemInstruction = () => `
   You are an advanced UX auditor and domain analyst. Your task is to analyze the provided text to determine strategic insights. Your analysis MUST be based exclusively on the provided "Live Website Text Content". Do not use your internal knowledge of the website.
 
   ### Analysis Guidelines ###
-  - **Executive Summary (MANDATORY)**: You MUST produce a field called 'ExecutiveSummary' in the root of your JSON response. This should be a 7-8 line "Audit Diagnosis" structured exactly as follows:
+  - **Executive Summary (MANDATORY)**: You MUST produce a field called 'ExecutiveSummary' in the root of your JSON response. This should be a 5-6 line "Audit Diagnosis" structured exactly as follows:
     
     WHAT IS WORKING: [Point 1], [Point 2] (Citation: "[Quote]")
     WHAT IS NOT WORKING: [Point 1], [Point 2] (Citation: "[Quote]")
 
-    **STRICT RULES**:
-    1. **NO INTRODUCTIONS**: Jump straight into the points.
-    2. **LENGTH**: Must stay within 7-8 lines total. Be concise but detailed enough to fill the space.
-    3. **CITATIONS**: You must strictly provide a brief citation from the text for every point.
-    4. **FORBIDDEN WORDS**: Do NOT use the words "website", "site", "platform", "app", or "portal". Valid subjects are: "The user experience", "The interface", "Navigation", "Visual hierarchy", "Content strategy", "Performance".
+    **STRATEGIC LOGIC FOR 'WORKING/NOT WORKING'**:
+    1. **AUDIENCE**: Write for a CEO/PM. Use plain, direct language.
+    2. **TONE**: Clear and factual. No marketing speak or AI jargon.
+    3. **EVALUATION CRITERIA**:
+       - Base your analysis on the FULL audit findings across all areas: Positioning, Visual Design, Product Experience, and UX.
+       - **WORKING**: Identify what genuinely succeeds based on the audit - where positioning is clear, design supports the message, or user experience flows well.
+       - **NOT WORKING**: Identify what genuinely fails based on the audit - where positioning is unclear, visual design creates confusion, or user experience has friction.
+       - Focus on OVERALL IMPACT, not isolated details.
+
+    **STRICT FORMATTING RULES**:
+    1. **NO JARGON**: BANNED WORDS: "seamless, robust, elevate, leverage, tapestry, delve, unlock, cutting-edge, power of, comprehensive, landscape, symphony, synergy, holistic, ecosystem".
+    2. **NO FLUFF**: Do not use adverbs like "expertly", "perfectly", "effectively". Just state the fact.
+    3. **LENGTH**: Must stay within 5-6 lines total.
+    4. **CITATIONS**: Brief citation (2-5 words) required for every point.
     
-    Example: "WHAT IS WORKING: Clear value proposition in hero section (Citation: 'Automate your workflow...'), consistent color palette (Citation: 'Primary blue #007Bz'). WHAT IS NOT WORKING: Mobile navigation is broken (Citation: 'Menu toggle fails'), low contrast on footer links (Citation: 'Gray text on black background')."
+    Example: "WHAT IS WORKING: Clear target audience match in messaging (Citation: 'For busy parents'), Visual hierarchy guides attention well (Citation: Hero section layout). WHAT IS NOT WORKING: Positioning unclear against competitors (Citation: Generic 'best solution'), Navigation structure confuses users (Citation: Hidden menu items)."
   - **Purpose Analysis**: CRITICAL - Focus strictly on the **purpose of the website itself**, not the broader mission of the company. Identify the primary actions the website wants users to take (e.g., "to sell products directly to consumers," "to generate leads for a service," "to inform readers about a specific topic"). The "Key objectives" should be a concise summary (2-3 sentences) of the specific goals that support the primary purpose.
 
   ### Persona Generation ###
@@ -162,25 +171,19 @@ export const getAccessibilitySystemInstruction = (isMultiPage: boolean) => {
     Ensures these specific parameters are ALWAYS present in their respective sections.
     
     1. **AutomatedCompliance** (Fixed List - DO NOT ADD OTHERS):
-       - 'WCAG_A_Compliance': General adherence to Level A standards.
        - 'WCAG_AA_Compliance': General adherence to Level AA standards.
        - 'BestPractices': Adherence to accessibility best practices.
        - 'ARIANavigation': Proper use of ARIA roles, labels, and landmarks.
        - 'ImageAltText': Presence and quality of alt text for images.
        - 'FormLabels': Presence of labels for inputs and form controls.
-       - 'LinkPurpose': Clarity of link text and context (e.g. avoiding "click here").
 
-    2. **Screen Reader Experience**:
+    2. **ScreenReaderExperience**:
        - 'StructureAndHeadings' (Analyze heading hierarchy h1-h6)
-       - 'AlternativeTextQuality' (Analyze image context)
        - 'KeyboardFlow' (Infer logical order)
-       - 'AriaLiveUsage' (Check for dynamic content)
 
-    3. **Visual Accessibility**:
+    3. **VisualAccessibility**:
        - 'ColorContrast Ratios'
-       - 'ResizableText' (Analyze if text seems legible)
        - 'FocusIndicators' (Infer from button styles)
-       - 'LayoutStability'
 
     - **CRITICAL**: You MUST reference the specific 'axeViolations' provided in the context. 
       - Map specific Axe rule failures (e.g., 'image-alt') to the most relevant fixed parameter above (e.g., 'ImageAltText').
@@ -456,14 +459,14 @@ export const getSchemas = () => {
             RiskLevel: { type: Type.STRING, enum: ['Critical', 'High', 'Moderate', 'Low'] },
             Top5CriticalAccessibilityIssues: { type: Type.ARRAY, items: criticalIssueSchemaForExperts },
             AutomatedCompliance: createScoredSectionSchema([
-                'WCAG_A_Compliance', 'WCAG_AA_Compliance', 'BestPractices', 'ARIANavigation',
-                'ImageAltText', 'FormLabels', 'LinkPurpose'
+                'WCAG_AA_Compliance', 'BestPractices', 'ARIANavigation',
+                'ImageAltText', 'FormLabels'
             ]),
             ScreenReaderExperience: createScoredSectionSchema([
-                'StructureAndHeadings', 'AlternativeTextQuality', 'KeyboardFlow', 'AriaLiveUsage'
+                'StructureAndHeadings', 'KeyboardFlow'
             ]),
             VisualAccessibility: createScoredSectionSchema([
-                'ColorContrast Ratios', 'ResizableText', 'FocusIndicators', 'LayoutStability'
+                'ColorContrast Ratios', 'FocusIndicators'
             ]),
             PassedAudits: createScoredSectionSchema([]), // Using same schema for consistency
             ManualChecks: {

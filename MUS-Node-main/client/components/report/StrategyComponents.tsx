@@ -7,8 +7,10 @@ import {
     Target,
     Lightbulb,
     MapPin,
-    Briefcase
+    Briefcase,
+    Swords // Added Swords
 } from 'lucide-react';
+import { ExecutiveSummaryDisplay } from './ExecutiveSummaryDisplay';
 
 // --- STYLING CONSTANTS ---
 const SECTION_LABEL = "text-xs font-bold text-slate-900 mb-1"; // Black Header
@@ -144,7 +146,7 @@ export function UserPersonasDisplay({ personas, isPdf = false }: { personas?: St
 
 // --- COMPONENT: STRATEGY AUDIT ---
 export function StrategyAuditDisplay({ audit, isPdf = false, forcePageBreak = false }: { audit: StrategyAudit, isPdf?: boolean, forcePageBreak?: boolean }) {
-    const { DomainAnalysis, PurposeAnalysis, TargetAudience, UserPersonas } = audit || {};
+    const { ExecutiveSummary, DomainAnalysis, PurposeAnalysis, TargetAudience, UserPersonas } = audit || {};
 
     // ✅ PDF Specific Spacing
     const cardPadding = isPdf ? "p-4" : "p-5";
@@ -154,6 +156,13 @@ export function StrategyAuditDisplay({ audit, isPdf = false, forcePageBreak = fa
 
     return (
         <div className={`${wrapperClass} font-['DM_Sans']`}>
+
+            {/* Section 0: Executive Summary (NEW) */}
+            {ExecutiveSummary && (
+                <div className={`break-inside-avoid pdf-item ${isPdf ? 'mb-2' : 'mb-6'}`}>
+                    <ExecutiveSummaryDisplay summaryText={ExecutiveSummary} isPdf={isPdf} />
+                </div>
+            )}
 
             {/* Section 1: Context Capture */}
             <div>

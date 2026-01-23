@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CompetitorAnalysisData, CompetitorComparisonItem } from '../../types';
 import { Trophy, TrendingUp, Target, Swords, CheckCircle2, XCircle, MinusCircle, Layers, Rocket, Palette, LayoutDashboard, BrainCircuit, ScanEye } from 'lucide-react';
+import { ExecutiveSummaryDisplay } from './ExecutiveSummaryDisplay';
 
 interface CompetitorAnalysisViewProps {
     data: CompetitorAnalysisData;
@@ -87,21 +88,9 @@ export const CompetitorAnalysisView: React.FC<CompetitorAnalysisViewProps> = ({ 
 
             {(activeTab === 'Summary' || isPdf) && (
                 <div className={`space-y-8 ${!isPdf ? 'animate-in fade-in slide-in-from-bottom-4 duration-500' : ''}`}>
-                    {/* 1. Executive Summary */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 break-inside-avoid pdf-item">
-                        <div className="flex items-start gap-4 mb-4">
-                            <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600">
-                                <Swords className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-slate-900">Head-to-Head Executive Summary</h3>
-                                <p className="text-slate-500 text-sm mt-1">High-level strategic comparison between your site and the competitor.</p>
-                            </div>
-                        </div>
-                        <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed bg-slate-50 p-6 rounded-xl border border-slate-100">
-                            {data.ExecutiveSummary}
-                        </div>
-                    </div>
+
+                    {/* 1. Executive Summary - REPLACED with Split Cards */}
+                    <ExecutiveSummaryDisplay summaryText={data.ExecutiveSummary} isPdf={isPdf} />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Your Advantages */}
